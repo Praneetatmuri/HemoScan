@@ -15,8 +15,26 @@ FEATURE_COLUMNS = [
     'age', 'gender', 'hemoglobin', 'rbc_count', 'mcv', 'mch', 'mchc',
     'hematocrit', 'iron_level', 'ferritin', 'diet_quality', 'chronic_disease',
     'pregnancy', 'family_history_anemia', 'fatigue', 'pale_skin',
-    'shortness_of_breath', 'dizziness', 'cold_hands_feet', 'bmi'
+    'shortness_of_breath', 'dizziness', 'cold_hands_feet', 'bmi',
+    # Derived CBC clinical indices
+    'mentzer_index', 'hb_rbc_ratio', 'mcv_mch_ratio', 'mchc_mch_diff', 'hct_hb_ratio',
 ]
+
+
+def _engineer_features(d: dict) -> dict:
+    """Compute derived CBC clinical indices from raw patient values."""
+    rbc  = d.get('rbc_count', 0) or 4.5
+    mch  = d.get('mch', 0) or 27.0
+    hb   = d.get('hemoglobin', 0) or 12.0
+    mcv  = d.get('mcv', 0)
+    mchc = d.get('mchc', 0)
+    hct  = d.get('hematocrit', 0)
+    d['mentzer_index'] = round(mcv / rbc, 2)
+    d['hb_rbc_ratio']  = round(hb / rbc, 2)
+    d['mcv_mch_ratio'] = round(mcv / mch, 2)
+    d['mchc_mch_diff'] = round(mchc - mch, 2)
+    d['hct_hb_ratio']  = round(hct / hb, 2)
+    return d
 
 SEVERITY_LABELS = {0: 'Normal', 1: 'Mild Anemia', 2: 'Moderate Anemia', 3: 'Severe Anemia'}
 SEVERITY_COLORS = {0: '#22c55e', 1: '#eab308', 2: '#f97316', 3: '#ef4444'}
@@ -59,6 +77,7 @@ class HemoScanPredictor:
             Dictionary with prediction, risk score, and recommendations
         """
         # Prepare features
+        patient_data = _engineer_features(dict(patient_data))
         features = np.array([[patient_data.get(col, 0) for col in FEATURE_COLUMNS]])
         features_scaled = self.scaler.transform(features)
         
