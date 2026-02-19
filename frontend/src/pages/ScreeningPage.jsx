@@ -75,15 +75,19 @@ function ScreeningPage() {
             })
 
             if (!res.ok) {
-                const errData = await res.json()
-                let errorMsg = 'Prediction failed'
-                if (typeof errData.detail === 'string') {
-                    errorMsg = errData.detail
-                } else if (Array.isArray(errData.detail)) {
-                    errorMsg = errData.detail.map(e => {
-                        const field = e.loc ? e.loc[e.loc.length - 1] : 'field'
-                        return `${field}: ${e.msg}`
-                    }).join('; ')
+                let errorMsg = `Server error (${res.status})`
+                try {
+                    const errData = await res.json()
+                    if (typeof errData.detail === 'string') {
+                        errorMsg = errData.detail
+                    } else if (Array.isArray(errData.detail)) {
+                        errorMsg = errData.detail.map(e => {
+                            const field = e.loc ? e.loc[e.loc.length - 1] : 'field'
+                            return `${field}: ${e.msg}`
+                        }).join('; ')
+                    }
+                } catch (_) {
+                    // non-JSON error body — keep status-code message
                 }
                 throw new Error(errorMsg)
             }
