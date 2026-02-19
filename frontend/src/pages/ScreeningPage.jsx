@@ -87,7 +87,16 @@ function ScreeningPage() {
 
             if (!res.ok) {
                 const errData = await res.json()
-                throw new Error(errData.detail || 'Prediction failed')
+                let errorMsg = 'Prediction failed'
+                if (typeof errData.detail === 'string') {
+                    errorMsg = errData.detail
+                } else if (Array.isArray(errData.detail)) {
+                    errorMsg = errData.detail.map(e => {
+                        const field = e.loc ? e.loc[e.loc.length - 1] : 'field'
+                        return `${field}: ${e.msg}`
+                    }).join('; ')
+                }
+                throw new Error(errorMsg)
             }
 
             const data = await res.json()
@@ -615,7 +624,7 @@ function ScreeningPage() {
                                             className="risk-score-fill"
                                             style={{
                                                 background: `linear-gradient(90deg, var(--severity-normal), ${result.risk_score > 60 ? 'var(--severity-severe)' :
-                                                        result.risk_score > 30 ? 'var(--severity-moderate)' : 'var(--severity-mild)'
+                                                    result.risk_score > 30 ? 'var(--severity-moderate)' : 'var(--severity-mild)'
                                                     })`,
                                             }}
                                             initial={{ width: 0 }}
