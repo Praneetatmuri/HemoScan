@@ -37,12 +37,18 @@ HemoScan/
 │   ├── requirements.txt            # Python dependencies
 │   ├── data/
 │   │   ├── generate_dataset.py     # Synthetic dataset generator
-│   │   └── anemia_dataset.csv      # Generated training data
+│   │   ├── anemia_dataset.csv      # Generated training data
+│   │   ├── inspect_datasets.py     # Dataset inspection & comparison utility
+│   │   ├── preprocess_kaggle.py    # Kaggle dataset preprocessing pipeline
+│   │   └── kaggle_raw/             # Real-world CBC datasets (Kaggle)
+│   │       ├── anemia.csv
+│   │       ├── CBC data_for_meandeley_csv.csv
+│   │       └── diagnosed_cbc_data_v4.csv
 │   ├── ml/
-│   │   ├── train_model.py          # ML training pipeline
-│   │   └── predictor.py            # Prediction & risk scoring engine
+│   │   ├── train_model.py          # ML training pipeline (stacking ensemble + SMOTE)
+│   │   └── predictor.py            # Prediction, feature engineering & risk scoring
 │   └── models/
-│       ├── hemoscan_model.joblib   # Trained ensemble model
+│       ├── hemoscan_model.joblib   # Trained stacking ensemble model
 │       ├── scaler.joblib           # Feature scaler
 │       └── model_metadata.json     # Training metrics & metadata
 ├── frontend/                       # React + Vite Frontend
@@ -93,6 +99,10 @@ pip install -r requirements.txt
 python data/generate_dataset.py
 python ml/train_model.py
 
+# (Optional) Inspect or preprocess Kaggle real-world datasets
+python data/inspect_datasets.py
+python data/preprocess_kaggle.py
+
 # Start the API server
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
@@ -123,9 +133,10 @@ npm run dev
 
 ### Model Architecture
 
-- **Random Forest** (200 trees) + **XGBoost** ensemble
-- **20 input features** covering blood parameters, demographics, symptoms, and medical history
+- **Stacking Ensemble** — Random Forest + XGBoost + LightGBM base learners with Logistic Regression meta-learner
+- **25 input features** — 20 base clinical features + 5 derived CBC indices
 - **4 severity classes**: Normal, Mild Anemia, Moderate Anemia, Severe Anemia
+- **SMOTE** oversampling to correct class imbalance in training data
 - **5-fold cross-validation** for robust evaluation
 - **Feature scaling** via StandardScaler for normalized input
 
@@ -139,6 +150,9 @@ npm run dev
 | Demographics | Age, Gender, BMI |
 | Medical History | Chronic Disease, Pregnancy, Family History of Anemia |
 | Lifestyle | Diet Quality (Poor / Average / Good) |
+| **Derived CBC Indices** | Mentzer Index (MCV/RBC), Hb/RBC Ratio, MCV/MCH Ratio, MCHC–MCH Diff, Hct/Hb Ratio |
+
+> The 5 derived CBC indices are computed automatically from raw inputs during both training and inference — no extra data entry required.
 
 ### Risk Scoring Engine
 
@@ -214,7 +228,8 @@ A dedicated dietary engine provides personalized nutrition guidance:
 |-------|-------------|
 | **Frontend** | React 18, Vite 6, React Router 6, Framer Motion, Recharts, Lucide Icons, jsPDF |
 | **Backend** | Python 3.10+, FastAPI, Uvicorn, Pydantic |
-| **ML** | Scikit-learn, XGBoost, Pandas, NumPy, Joblib |
+| **ML** | Scikit-learn, XGBoost, LightGBM, imbalanced-learn (SMOTE), Pandas, NumPy, Joblib |
+| **Data** | Synthetic generator + real-world Kaggle CBC datasets |
 | **i18n** | React Context API with custom translation system |
 
 ---
